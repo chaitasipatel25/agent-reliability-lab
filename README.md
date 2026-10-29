@@ -107,7 +107,7 @@ Make sure the Ollama service is running before launching evaluations.
 Clone the repository and enter its directory:
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/chaitasipatel25/agent-reliability-lab
 cd agent-reliability-lab
 ```
 
