@@ -98,3 +98,9 @@ def test_evaluate_execution_error():
 
     assert result["passed"] is False
     assert result["failure_category"] == "execution_error"
+
+def test_does_not_accept_expected_answer_mentioned_as_context():
+    response = (
+        "I calculated 999, but the expected answer is 1037."
+    )
+    assert not answer_matches(response, "1037")

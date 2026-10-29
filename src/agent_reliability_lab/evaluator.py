@@ -7,27 +7,41 @@ def normalize_number(value: str) -> str:
 
 
 def answer_matches(response: str, expected: str) -> bool:
-    """Compare the expected number with the last numeric value in a response."""
-    import re
+    """Match the final answer, not numbers mentioned as context."""
+    text = response.replace(",", "")
 
-    def normalize(value: str) -> str:
-        return value.replace(",", "").strip()
+    conflict = re.search(
+    r"(?i)\b(?:calculated|computed|got|result(?:\s+is)?)\s+"
+    r"(-?\d+(?:\.\d+)?)\b.*?"
+    r"\bexpected answer is\s+(-?\d+(?:\.\d+)?)\b",
+    text,
+)
+    if conflict:
+        return float(conflict.group(1)) == float(expected.replace(",", "").strip())
 
-    # Match integers, decimals, signed numbers, and comma-formatted numbers.
-    pattern = r"(?<![\w.])-?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?"
-    numbers = re.findall(pattern, response)
+    # Prefer an explicitly labeled final answer.
+    patterns = [
+        r"(?im)^\s*(?:final\s+answer|answer)\s*[:=]\s*(-?\d+(?:\.\d+)?)\s*[.!]?\s*$",
+        r"(?i)\b(?:final answer|answer)\s+is\s+(-?\d+(?:\.\d+)?)\s*[.!]?",
+    ]
 
+    for pattern in patterns:
+        matches = re.findall(pattern, text)
+        if matches:
+            try:
+                return float(matches[-1]) == float(expected.replace(",", "").strip())
+            except ValueError:
+                return False
+
+    # Fallback: use the last numeric value only when no answer label exists.
+    numbers = re.findall(r"(?<![\w.])-?\d+(?:\.\d+)?", text)
     if not numbers:
         return False
 
-    actual = normalize(numbers[-1])
-    expected = normalize(str(expected))
-
     try:
-        return float(actual) == float(expected)
+        return float(numbers[-1]) == float(expected.replace(",", "").strip())
     except ValueError:
         return False
-
 
 def evaluate_task(trace: dict) -> dict:
     """Score a task trace and classify failures."""
