@@ -1,0 +1,6 @@
+{"id":"math-001","prompt":"Use the calculate tool to compute 125 * 8 + 37. Give the final answer clearly.","expected_answer":"1037","require_tool":true}
+{"id":"math-002","prompt":"Use the calculate tool to compute 144 / 12. Give the final answer clearly.","expected_answer":"12","require_tool":true}
+{"id":"math-003","prompt":"Use the calculate tool to compute 19 * 6. Give the final answer clearly.","expected_answer":"114","require_tool":true}
+{"id":"math-004","prompt":"Use the calculate tool to compute (42 - 18) * 3. Give the final answer clearly.","expected_answer":"72","require_tool":true}
+{"id":"math-005","prompt":"Use the calculate tool to compute 2 * (15 + 7). Give the final answer clearly.","expected_answer":"44","require_tool":true}
+{"id":"math-006","prompt":"Use the calculate tool to compute 7 * 8 - 9. Give the final answer clearly.","expected_answer":"47","require_tool":true}

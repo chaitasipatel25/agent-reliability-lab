@@ -1,0 +1,77 @@
+{
+  "model": "qwen3:8b",
+  "total_tasks": 6,
+  "passed": 6,
+  "failed": 0,
+  "pass_rate": 1.0,
+  "mean_duration_ms": 22224.33,
+  "failure_categories": {},
+  "results": [
+    {
+      "task_id": "math-001",
+      "passed": true,
+      "expected_answer": "1037",
+      "answer_correct": true,
+      "tool_required": true,
+      "calculator_used": true,
+      "failure_category": null,
+      "duration_ms": 29250.27,
+      "error": null
+    },
+    {
+      "task_id": "math-002",
+      "passed": true,
+      "expected_answer": "12",
+      "answer_correct": true,
+      "tool_required": true,
+      "calculator_used": true,
+      "failure_category": null,
+      "duration_ms": 20191.13,
+      "error": null
+    },
+    {
+      "task_id": "math-003",
+      "passed": true,
+      "expected_answer": "114",
+      "answer_correct": true,
+      "tool_required": true,
+      "calculator_used": true,
+      "failure_category": null,
+      "duration_ms": 14547.77,
+      "error": null
+    },
+    {
+      "task_id": "math-004",
+      "passed": true,
+      "expected_answer": "72",
+      "answer_correct": true,
+      "tool_required": true,
+      "calculator_used": true,
+      "failure_category": null,
+      "duration_ms": 20371.24,
+      "error": null
+    },
+    {
+      "task_id": "math-005",
+      "passed": true,
+      "expected_answer": "44",
+      "answer_correct": true,
+      "tool_required": true,
+      "calculator_used": true,
+      "failure_category": null,
+      "duration_ms": 24259.2,
+      "error": null
+    },
+    {
+      "task_id": "math-006",
+      "passed": true,
+      "expected_answer": "47",
+      "answer_correct": true,
+      "tool_required": true,
+      "calculator_used": true,
+      "failure_category": null,
+      "duration_ms": 24726.4,
+      "error": null
+    }
+  ]
+}
