@@ -2,52 +2,67 @@ import re
 
 
 def normalize_number(value: str) -> str:
-    """Normalize numbers such as 1,037 and 1037."""
+    """Normalize formatted numbers such as 1,037 to 1037."""
     return value.replace(",", "").strip()
 
 
+
 def answer_matches(response: str, expected: str) -> bool:
-    """Match the final answer, not numbers mentioned as context."""
-    text = response.replace(",", "")
+    """Match explicit numeric answers without guessing from arbitrary numbers."""
+    try:
+        expected_value = float(normalize_number(expected))
+    except (ValueError, TypeError):
+        return False
 
-    conflict = re.search(
-    r"(?i)\b(?:calculated|computed|got|result(?:\s+is)?)\s+"
-    r"(-?\d+(?:\.\d+)?)\b.*?"
-    r"\bexpected answer is\s+(-?\d+(?:\.\d+)?)\b",
-    text,
-)
-    if conflict:
-        return float(conflict.group(1)) == float(expected.replace(",", "").strip())
+    text = normalize_number(response).strip()
+    if not text:
+        return False
 
-    # Prefer an explicitly labeled final answer.
+    # Accept a response consisting only of a number.
+    if re.fullmatch(r"-?\d+(?:\.\d+)?[.!]?", text):
+        return float(text.rstrip(".!")) == expected_value
+
+    # Extract explicitly presented answers in common model formats.
     patterns = [
-        r"(?im)^\s*(?:final\s+answer|answer)\s*[:=]\s*(-?\d+(?:\.\d+)?)\s*[.!]?\s*$",
-        r"(?i)\b(?:final answer|answer)\s+is\s+(-?\d+(?:\.\d+)?)\s*[.!]?",
+        # Final Answer: 44 / Answer: 44
+        r"(?im)^\s*(?:final\s+answer|answer)\s*[:=]\s*"
+        r"(-?\d+(?:\.\d+)?)\s*[.!]?\s*$",
+
+        # The answer is 1037 / Final answer is 1037
+        r"(?i)\b(?:the\s+answer|final\s+answer)\s+is\s+"
+        r"(-?\d+(?:\.\d+)?)\b",
+
+        # LaTeX: \boxed{114}
+        r"\\boxed\s*\{\s*(-?\d+(?:\.\d+)?)\s*\}",
+
+        # Markdown: **72** at the end of a response
+        r"\*\*(-?\d+(?:\.\d+)?)\*\*\s*[.!]?\s*$",
     ]
 
+    matches = []
     for pattern in patterns:
-        matches = re.findall(pattern, text)
-        if matches:
-            try:
-                return float(matches[-1]) == float(expected.replace(",", "").strip())
-            except ValueError:
-                return False
+        matches.extend(re.findall(pattern, text))
 
-    # Fallback: use the last numeric value only when no answer label exists.
-    numbers = re.findall(r"(?<![\w.])-?\d+(?:\.\d+)?", text)
-    if not numbers:
+    if not matches:
         return False
 
     try:
-        return float(numbers[-1]) == float(expected.replace(",", "").strip())
+        values = [float(value) for value in matches]
     except ValueError:
         return False
+
+    # Reject contradictory answer candidates.
+    if any(value != values[0] for value in values[1:]):
+        return False
+
+    return values[0] == expected_value
+
+
 
 def evaluate_task(trace: dict) -> dict:
     """Score a task trace and classify failures."""
     response = trace.get("final_response", "")
     expected = str(trace.get("expected_answer", ""))
-
     answer_correct = answer_matches(response, expected)
 
     tool_calls = trace.get("tool_calls", [])

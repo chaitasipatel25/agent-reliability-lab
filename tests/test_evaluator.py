@@ -104,3 +104,106 @@ def test_does_not_accept_expected_answer_mentioned_as_context():
         "I calculated 999, but the expected answer is 1037."
     )
     assert not answer_matches(response, "1037")
+
+    
+
+def test_rejects_expected_answer_used_as_context():
+    assert not answer_matches(
+        "I calculated 999, but the expected answer is 1037.",
+        "1037",
+    )
+
+
+def test_rejects_conflicting_answer_labels():
+    assert not answer_matches(
+        "The answer is 999. The final answer is 1037.",
+        "1037",
+    )
+
+
+def test_rejects_unlabeled_explanation_ending_in_expected_number():
+    assert not answer_matches(
+        "I considered 12, 15, and 18, but could not determine the answer.",
+        "18",
+    )
+
+
+def test_accepts_standalone_numeric_response():
+    assert answer_matches("1037", "1037")
+
+
+def test_accepts_negative_standalone_numeric_response():
+    assert answer_matches("-12", "-12")
+
+
+def test_rejects_malformed_expected_answer():
+    assert not answer_matches("The answer is 12.", "not-a-number")
+
+
+def test_rejects_expected_answer_used_as_context():
+    assert not answer_matches(
+        "I calculated 999, but the expected answer is 1037.",
+        "1037",
+    )
+
+
+def test_rejects_conflicting_answer_labels():
+    assert not answer_matches(
+        "The answer is 999. The final answer is 1037.",
+        "1037",
+    )
+
+
+def test_rejects_unlabeled_explanation_ending_in_expected_number():
+    assert not answer_matches(
+        "I considered 12, 15, and 18, but could not determine the answer.",
+        "18",
+    )
+
+
+def test_accepts_standalone_numeric_response():
+    assert answer_matches("1037", "1037")
+
+
+def test_accepts_negative_standalone_numeric_response():
+    assert answer_matches("-12", "-12")
+
+
+def test_rejects_malformed_expected_answer():
+    assert not answer_matches("The answer is 12.", "not-a-number")
+
+
+def test_accepts_latex_boxed_answer():
+    assert answer_matches(
+        r"The result is $\boxed{114}$.",
+        "114",
+    )
+
+
+def test_accepts_latex_display_math_answer():
+    assert answer_matches(
+        "The result is:\n\n$$\n\\boxed{12}\n$$",
+        "12",
+    )
+
+
+def test_accepts_markdown_bold_answer():
+    assert answer_matches(
+        "The result of (42 - 18) * 3 is **72**.",
+        "72",
+    )
+
+
+def test_accepts_labeled_answer_with_explanation():
+    assert answer_matches(
+        "The result is 44.\n\nFinal Answer: 44",
+        "44",
+    )
+
+
+def test_rejects_conflicting_boxed_answers():
+    assert not answer_matches(
+        r"The answer is $\boxed{999}$, "
+        r"but the final result is $\boxed{1037}$.",
+        "1037",
+    )
