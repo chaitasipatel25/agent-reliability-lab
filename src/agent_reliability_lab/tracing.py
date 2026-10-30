@@ -15,6 +15,7 @@ def new_trace(task_id: str, model: str) -> dict:
         "tool_calls": [],
         "final_response": "",
         "error": None,
+        "error_type": None,
         "passed": False,
     }
 

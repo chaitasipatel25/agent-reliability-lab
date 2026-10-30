@@ -75,9 +75,11 @@ def run_task(task: dict, model: str = MODEL) -> dict:
                 )
         else:
             trace["error"] = "Maximum agent steps reached"
+            trace["error_type"] = "step_limit_exceeded"
 
     except Exception as exc:
         trace["error"] = f"{type(exc).__name__}: {exc}"
+        trace["error_type"] = "execution_error"
 
     trace["duration_ms"] = round(
         (time.perf_counter() - started) * 1000, 2

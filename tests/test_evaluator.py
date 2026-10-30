@@ -207,3 +207,54 @@ def test_rejects_conflicting_boxed_answers():
         r"but the final result is $\boxed{1037}$.",
         "1037",
     )
+
+def test_evaluate_step_limit_exceeded():
+    trace = {
+        "task_id": "math-loop",
+        "final_response": "",
+        "expected_answer": "12",
+        "tool_required": True,
+        "tool_calls": [{"tool": "calculate"}],
+        "error": "Maximum agent steps reached",
+        "error_type": "step_limit_exceeded",
+        "duration_ms": 1000,
+    }
+
+    result = evaluate_task(trace)
+
+    assert result["passed"] is False
+    assert result["failure_category"] == "step_limit_exceeded"
+
+
+def test_evaluate_execution_error():
+    trace = {
+        "task_id": "math-crash",
+        "final_response": "",
+        "expected_answer": "12",
+        "tool_required": True,
+        "tool_calls": [],
+        "error": "Connection refused",
+        "error_type": "execution_error",
+        "duration_ms": 1000,
+    }
+
+    result = evaluate_task(trace)
+
+    assert result["passed"] is False
+    assert result["failure_category"] == "execution_error"
+
+def test_legacy_trace_without_error_type():
+    trace = {
+        "task_id": "legacy-error",
+        "final_response": "",
+        "expected_answer": "12",
+        "tool_required": True,
+        "tool_calls": [],
+        "error": "Model unavailable",
+        "duration_ms": 1000,
+    }
+
+    result = evaluate_task(trace)
+
+    assert result["passed"] is False
+    assert result["failure_category"] == "execution_error"

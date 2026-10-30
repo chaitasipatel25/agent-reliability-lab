@@ -78,10 +78,14 @@ def evaluate_task(trace: dict) -> dict:
     )
 
     error = trace.get("error")
+    error_type = trace.get("error_type")
+
     passed = answer_correct and tool_requirement_met and not error
 
     if passed:
         failure_category = None
+    elif error_type == "step_limit_exceeded":
+        failure_category = "step_limit_exceeded"
     elif error:
         failure_category = "execution_error"
     elif not tool_requirement_met:
