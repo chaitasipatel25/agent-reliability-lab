@@ -1,145 +1,153 @@
 # Agent Reliability Lab
 
-**An evaluation and observability harness for tool-using AI agents.**
+**A local-first evaluation and observability framework for tool-using AI agents.**
 
-Agent Reliability Lab explores a practical question: how do we know whether an AI agent is actually reliable, rather than simply observing that it produced a plausible response?
+Agent Reliability Lab explores a fundamental challenge in agentic systems: **how do we measure whether an AI agent is reliable, rather than simply trusting its final response?**
 
-The project starts with a locally running LLM, a deterministic calculator tool, and a repeatable evaluation harness. It captures execution traces, checks agent behavior against explicit criteria, categorizes failures, and generates reports that make regressions easier to detect.
+An agent may produce a plausible answer despite failing to use a required tool, receiving an execution error, or generating an incorrect result. This project makes those behaviors observable through execution traces, independent evaluation, and repeatable experiments.
 
-This is an evolving engineering project focused on **evaluation, observability, and reliability** for AI agents.
+## The Problem
 
-> **Project status:** Early-stage prototype. The current benchmark is a small arithmetic smoke test, not evidence of general-purpose agent reliability.
+Traditional unit tests validate individual components, but they don't fully capture the behavior of an AI agent interacting with tools.
 
-## Why this project?
+Some important failure scenarios include:
 
-Tool-using agents introduce failure modes that ordinary unit tests don't fully capture:
+- An agent returns an answer without using a required tool.
+- A tool invocation fails because of invalid arguments or execution errors.
+- An agent fails to recover after a tool failure.
+- A tool executes successfully, but the agent produces an incorrect final answer.
+- A prompt or model change introduces inconsistent results across executions.
 
-- An agent can return a plausible answer without using a required tool.
-- A tool call can fail, receive invalid arguments, or return an unexpected result.
-- A model can produce an incorrect final answer despite successful tool execution.
-- Changes to prompts, models, or agent logic can introduce regressions.
-- A successful final response can hide inefficient or unnecessarily repeated tool calls.
+Without structured evaluation, these failures can be difficult to identify and measure.
 
-This project aims to make those behaviors observable and measurable through repeatable experiments.
+## The Solution
 
-## Current capabilities
+Build an evaluation harness that executes agent tasks, captures execution evidence, and independently evaluates outcomes.
 
-- **Local model execution:** Run an agent with Ollama and Qwen3, without requiring a hosted LLM API.
-- **Tool execution:** Give the model access to a calculator tool with a restricted arithmetic evaluator.
-- **Bounded agent loop:** Limit tool-execution iterations to prevent unbounded loops.
-- **Execution tracing:** Capture tool calls, arguments, results, errors, timing, and the final response in JSON traces.
-- **Independent evaluation:** Evaluate the final answer and whether required tool usage occurred.
-- **Failure categorization:** Distinguish incorrect answers, tool-use failures, and execution errors.
-- **Automated tests:** Test calculator behavior and evaluator edge cases.
-- **Repeatable experiments:** Run the evaluation multiple times and summarize results.
-- **Machine-readable reports:** Store evaluation results as JSON for later comparison and analysis.
+The initial implementation uses a locally hosted Qwen3 model through Ollama and a deterministic calculator tool.
 
-## Architecture
+The system measures:
+
+- **Answer correctness:** Does the final response match the expected answer?
+- **Tool compliance:** Did the agent successfully execute a required tool?
+- **Failure classification:** Did the task fail because of incorrect output, tool usage, tool execution, or agent execution?
+- **Tool reliability:** How many tool calls succeeded or failed?
+- **Recovery:** Could the agent complete a task after an earlier tool failure?
+- **Execution performance:** How do pass rates and latency vary across repeated runs?
+
+The evaluator operates independently of the agent, so the agent cannot determine its own success simply by claiming it completed a task.
+
+## How It Works
 
 ```text
-Benchmark dataset (JSONL)
-          |
-          v
-      Eval runner
-          |
-          v
-     Agent loop
-          |
-          v
-   Local LLM (Ollama)
-          |
-          v
-   Calculator tool
-          |
-          v
- Final response + trace
-          |
-          v
- Independent evaluator
-          |
-          v
- Results + failure categories
-          |
-          v
- JSON reports
+       Benchmark Dataset
+              |
+              v
+        Evaluation Runner
+              |
+              v
+          Agent Loop
+              |
+              v
+       Local LLM (Ollama)
+              |
+              v
+        Calculator Tool
+              |
+              v
+      Execution Trace (JSON)
+              |
+              v
+      Independent Evaluator
+              |
+              v
+      Metrics & Failure Analysis
+              |
+              v
+         JSON Reports
 ```
 
-The model is responsible for deciding how to respond and when to call the tool. The calculator performs the arithmetic, while the evaluator independently checks the observed outcome against the benchmark's requirements.
+**Execution:** The runner loads benchmark tasks and invokes the model with the available tools.
 
-This separation is intentional: **the agent should not be the sole judge of its own success.**
+**Tool interaction:** The agent can invoke the calculator. Tool results and errors are returned to the model, allowing it to continue execution within a bounded loop.
 
-## Technology stack
+**Tracing:** Each execution captures tool calls, arguments, results, errors, timing, and the final response.
 
-- Python
-- Ollama
-- Qwen3 8B
-- pytest
-- JSONL benchmark datasets
-- JSON execution traces and evaluation reports
-- GitHub Actions CI (planned or in progress, depending on the current repository state)
+**Evaluation:** A deterministic evaluator checks the final answer, required tool execution, and execution errors. It also classifies failures and identifies successful recovery after tool failures.
 
-## Getting started
+**Repeated experiments:** Multiple evaluation runs produce individual reports, archived traces, and aggregate reliability metrics.
+
+## Engineering Decisions
+
+| Decision | Rationale |
+|---|---|
+| Local-first model execution | Run experiments without depending on a hosted LLM API |
+| Deterministic tools | Use explicit, predictable execution for operations such as arithmetic |
+| Independent evaluation | Avoid relying on the agent to judge its own correctness |
+| Structured execution traces | Preserve evidence for debugging and failure analysis |
+| Bounded agent execution | Prevent unbounded tool-call loops |
+| Conservative failure classification | Distinguish tool invocation failures from tool execution failures |
+| Repeated evaluations | Observe variability instead of relying on a single successful run |
+| Automated tests | Validate execution and evaluation behavior without expensive model inference |
+
+## Evaluation and Reliability Metrics
+
+The evaluation harness generates metrics including:
+
+| Metric | Description |
+|---|---|
+| Pass rate | Percentage of benchmark tasks completed successfully |
+| Answer correctness | Whether the final response matches the expected result |
+| Tool success rate | Successful tool calls divided by total tool calls |
+| Tool failure count | Number of tool invocations that returned errors |
+| Recovery count | Tasks completed successfully after a tool failure |
+| Failure categories | Classification of unsuccessful tasks |
+| Mean latency | Average task execution time |
+
+The benchmark currently contains six arithmetic tasks. These metrics establish a baseline for the configured model and dataset; they are not a claim of general-purpose agent reliability.
+
+## Running Locally
 
 ### Prerequisites
 
-- Python 3.10 or newer
+- Python 3.10+
 - [Ollama](https://ollama.com/)
 - Git
 
-### 1. Install and start the local model
-
-Install Ollama, then download the model:
+### 1. Download the model
 
 ```bash
 ollama pull qwen3:8b
 ```
 
-Confirm that the model is available:
+Make sure the Ollama service is running.
 
-```bash
-ollama list
-```
-
-Make sure the Ollama service is running before launching evaluations.
-
-### 2. Set up the Python environment
-
-Clone the repository and enter its directory:
+### 2. Set up the project
 
 ```bash
 git clone https://github.com/chaitasipatel25/agent-reliability-lab
 cd agent-reliability-lab
-```
 
-Create and activate a virtual environment:
-
-```bash
 python3 -m venv .venv
 source .venv/bin/activate
-```
 
-Install the dependencies:
-
-```bash
 python -m pip install --upgrade pip
 python -m pip install ollama pytest
 ```
 
-### 3. Run the unit tests
+### 3. Run automated tests
 
 ```bash
-python -m pytest -q
+python -m pytest -v
 ```
 
-The unit tests cover deterministic calculator behavior and evaluator behavior, including incorrect answers and execution failures.
+The deterministic test suite validates calculator behavior, answer evaluation, failure classification, agent execution, and tool recovery without requiring model inference.
 
-### 4. Run the evaluation
+### 4. Run a single evaluation
 
 ```bash
 python scripts/run_eval.py
 ```
-
-The runner loads the benchmark dataset, executes each task, evaluates the results, writes execution traces, and generates a summary report.
 
 ### 5. Run repeated evaluations
 
@@ -147,125 +155,46 @@ The runner loads the benchmark dataset, executes each task, evaluates the result
 python scripts/run_repeated_eval.py
 ```
 
-Repeated runs help expose variability that a single successful execution may hide.
+Model evaluations require a running Ollama service and can take longer than unit tests.
 
-> Model evaluations require a running Ollama service and can take significantly longer than the deterministic unit tests.
+## Observability Artifacts
 
-## Benchmark design
+The harness generates local JSON artifacts:
 
-The initial benchmark lives in `datasets/smoke.jsonl`.
+- `traces/` — execution traces for individual tasks.
+- `traces/run_N/` — archived traces from individual repeated runs.
+- `reports/latest.json` — most recent evaluation results.
+- `reports/run_N.json` — individual repeated-run reports.
+- `reports/repeated_summary.json` — aggregate metrics across runs.
 
-Each task defines a unique ID, a prompt, an expected answer, and whether calculator-tool usage is required.
+Generated traces and reports are excluded from version control.
 
-Example:
+## Technology Stack
 
-```json
-{
-  "id": "math-001",
-  "prompt": "Use the calculate tool to compute 125 * 8 + 37. Give the final answer clearly.",
-  "expected_answer": "1037",
-  "require_tool": true
-}
-```
+- **Language:** Python
+- **Model runtime:** Ollama
+- **Model:** Qwen3 8B
+- **Testing:** pytest
+- **Data and reporting:** JSON, JSONL
+- **CI:** GitHub Actions
 
-The smoke dataset currently covers six arithmetic tasks. It provides a small, reproducible baseline for testing the agent loop and evaluation pipeline.
+## Future Work
 
-### Evaluation criteria
-
-| Metric | What it measures |
-|---|---|
-| Answer correctness | Whether the final response matches the expected result |
-| Tool-use compliance | Whether a required calculator tool was used |
-| Execution errors | Whether an error occurred during execution |
-| Pass rate | Percentage of tasks satisfying the evaluation criteria |
-| Latency | Time spent executing a task |
-| Failure category | The primary reason a task did not pass |
-
-These metrics describe the tested tasks and configured model. They should not be interpreted as a universal measure of agent intelligence or reliability.
-
-## Tracing and reports
-
-The project separates execution evidence from evaluation results.
-
-- `traces/` — per-task JSON execution traces.
-- `reports/latest.json` — results from the latest evaluation.
-- `reports/run_*.json` — reports from repeated runs.
-- `reports/repeated_summary.json` — aggregate summary across repeated runs.
-
-A trace records information such as the task ID, model, start time, duration, tool calls, final response, execution error, and pass status.
-
-The evaluator determines the final outcome after execution. This allows the project to inspect what happened, not just whether the task passed.
-
-Generated traces and reports are local artifacts and should be reviewed before committing them to version control.
-
-## Repository structure
-
-```text
-agent-reliability-lab/
-├── datasets/
-│   └── smoke.jsonl
-├── src/
-│   └── agent_reliability_lab/
-│       ├── calculator.py
-│       ├── evaluator.py
-│       ├── runner.py
-│       └── tracing.py
-├── tests/
-│   ├── test_calculator.py
-│   └── test_evaluator.py
-├── scripts/
-│   ├── run_eval.py
-│   └── run_repeated_eval.py
-├── traces/
-├── reports/
-├── .github/
-│   └── workflows/
-├── README.md
-└── .gitignore
-```
-
-## Work in progress
-
-The following items are planned improvements, not claims about functionality already completed.
-
-- [ ] **Expand the benchmark:** Add multi-step tasks, malformed tool arguments, tool errors, missing tool calls, and tasks with misleading intermediate responses.
-- [ ] **Strengthen evaluation:** Handle numeric formats and ambiguous final answers more robustly; test evaluator limitations explicitly.
-- [ ] **Measure reliability over repeated runs:** Track pass-rate variation, latency distributions, and failure rates across runs.
-- [ ] **Improve trace quality:** Add explicit step-level outcomes, consistent timestamps, and more structured error information.
-- [ ] **Add regression testing:** Run deterministic tests automatically on pull requests and verify the CI workflow.
-- [ ] **Compare models and configurations:** Evaluate different local models, prompts, and agent-loop settings using the same benchmark.
-- [ ] **Add observability integration:** Explore OpenTelemetry and an agent-tracing UI such as Arize Phoenix.
-- [ ] **Improve packaging and reproducibility:** Define project dependencies and configuration in a standard Python project setup.
-- [ ] **Document known limitations:** Clearly define what the evaluator can and cannot reliably infer from a model's final response.
-
-## Design principles
-
-**Deterministic where possible.** Arithmetic and other predictable operations should use tools with explicit behavior rather than relying on the LLM to calculate correctly.
-
-**Evaluate independently.** The agent's claim of success is not sufficient evidence that a task passed.
-
-**Bound execution.** Agent loops need explicit limits and visible failure behavior.
-
-**Preserve evidence.** Traces should make failures diagnosable and support repeatable experiments.
-
-**Measure before optimizing.** Changes to prompts, models, and execution strategies should be evaluated against a consistent baseline.
+- Expand benchmarks to multi-step and more realistic tool-use scenarios.
+- Compare models, prompts, and agent configurations against the same dataset.
+- Improve trace structure and step-level observability.
+- Integrate OpenTelemetry and an agent-tracing platform such as Arize Phoenix.
+- Add regression detection across model and prompt changes.
+- Improve packaging and reproducibility.
 
 ## Limitations
 
-- The initial dataset is small and arithmetic-focused.
-- A local model's behavior may vary across executions.
-- Numeric answer matching does not establish correctness for arbitrary natural-language tasks.
-- The current prototype does not yet establish production-grade security, scalability, or reliability.
-- Latency measurements depend on local hardware, model loading, and runtime conditions.
+This is an early-stage prototype, not a production-grade agent evaluation platform.
 
-## Future direction
+The initial benchmark is small and arithmetic-focused. Numeric answer matching cannot establish correctness for arbitrary natural-language tasks, and local model behavior may vary between executions.
 
-The longer-term goal is to evolve this prototype into a reusable evaluation and observability framework for tool-using agents, with richer benchmark scenarios, model comparisons, failure analysis, and regression detection.
+The goal is to establish a practical foundation for measuring, investigating, and improving the reliability of tool-using agents.
 
-The emphasis is on turning agent reliability from an informal impression into something engineers can test, measure, investigate, and improve.
+## License
 
----
-
-**Status:** Active development  
-**Scope:** Local-first agent evaluation and observability  
-**License:** To be determined
+MIT

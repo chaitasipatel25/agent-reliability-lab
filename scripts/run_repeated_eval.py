@@ -41,6 +41,22 @@ def main():
         run_path = REPORT_DIR / f"run_{run_number}.json"
         run_path.write_text(json.dumps(report, indent=2))
 
+        # Preserve raw traces for this run.
+        run_trace_dir = TRACE_DIR / f"run_{run_number}"
+        run_trace_dir.mkdir(parents=True, exist_ok=True)
+
+        for task in report["results"]:
+            task_id = task["task_id"]
+            source = TRACE_DIR / f"{task_id}.json"
+            destination = run_trace_dir / f"{task_id}.json"
+
+            if not source.exists():
+                raise FileNotFoundError(
+                    f"Missing trace for task {task_id}: {source}"
+                )
+
+            destination.write_text(source.read_text())
+
         history.append({
             "run": run_number,
             "pass_rate": report["pass_rate"],
@@ -48,6 +64,10 @@ def main():
             "total_tasks": report["total_tasks"],
             "mean_duration_ms": report["mean_duration_ms"],
             "failure_categories": report["failure_categories"],
+            "total_tool_calls": report["total_tool_calls"],
+            "total_tool_failures": report["total_tool_failures"],
+            "tool_success_rate": report["tool_success_rate"],
+            "recovered_tasks": report["recovered_tasks"],
         })
 
     pass_rates = [item["pass_rate"] for item in history]
@@ -68,6 +88,24 @@ def main():
             if latencies else None
         ),
         "run_results": history,
+        "mean_tool_success_rate": (
+            round(
+                statistics.mean(
+                    item["tool_success_rate"] for item in history
+                ),
+                4,
+            )
+            if history else 0
+        ),
+        "total_tool_calls": sum(
+            item["total_tool_calls"] for item in history
+        ),
+        "total_tool_failures": sum(
+            item["total_tool_failures"] for item in history
+        ),
+        "total_recovered_tasks": sum(
+            item["recovered_tasks"] for item in history
+        ),
     }
 
     summary_path = REPORT_DIR / "repeated_summary.json"

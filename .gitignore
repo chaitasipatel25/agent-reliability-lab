@@ -30,7 +30,7 @@ dist/
 .vscode/
 
 # Local agent execution artifacts
-traces/*.json
-reports/*.json
+traces/
+reports/
 EOF
 

@@ -258,3 +258,118 @@ def test_legacy_trace_without_error_type():
 
     assert result["passed"] is False
     assert result["failure_category"] == "execution_error"
+
+def test_evaluate_calculator_execution_failure():
+    trace = {
+        "task_id": "math-tool-error",
+        "final_response": "I could not calculate the answer.",
+        "expected_answer": "42",
+        "tool_required": True,
+        "tool_calls": [
+            {
+                "tool": "calculate",
+                "result": "Tool error: Invalid expression",
+                "error": "Invalid expression",
+            }
+        ],
+        "error": None,
+        "duration_ms": 1000,
+    }
+
+    result = evaluate_task(trace)
+
+    assert result["passed"] is False
+    assert result["calculator_used"] is True
+    assert result["calculator_succeeded"] is False
+    assert result["failure_category"] == "tool_execution_failure"
+    assert result["tool_call_count"] == 1
+    assert result["tool_failure_count"] == 1
+    assert result["tool_success_count"] == 0
+    assert result["recovered_from_tool_failure"] is False
+
+
+def test_evaluate_successful_tool_retry():
+    trace = {
+        "task_id": "math-tool-retry",
+        "final_response": "The answer is 42.",
+        "expected_answer": "42",
+        "tool_required": True,
+        "tool_calls": [
+            {
+                "tool": "calculate",
+                "result": "Tool error: Temporary failure",
+                "error": "Temporary failure",
+            },
+            {
+                "tool": "calculate",
+                "result": "42",
+                "error": None,
+            },
+        ],
+        "error": None,
+        "duration_ms": 1500,
+    }
+
+    result = evaluate_task(trace)
+
+    assert result["passed"] is True
+    assert result["calculator_used"] is True
+    assert result["calculator_succeeded"] is True
+    assert result["failure_category"] is None
+    assert result["tool_call_count"] == 2
+    assert result["tool_failure_count"] == 1
+    assert result["tool_success_count"] == 1
+    assert result["recovered_from_tool_failure"] is True
+
+
+def test_evaluate_wrong_answer_after_successful_tool_call():
+    trace = {
+        "task_id": "math-wrong-after-tool",
+        "final_response": "The answer is 41.",
+        "expected_answer": "42",
+        "tool_required": True,
+        "tool_calls": [
+            {
+                "tool": "calculate",
+                "result": "42",
+                "error": None,
+            }
+        ],
+        "error": None,
+        "duration_ms": 1000,
+    }
+
+    result = evaluate_task(trace)
+
+    assert result["passed"] is False
+    assert result["calculator_succeeded"] is True
+    assert result["failure_category"] == "incorrect_answer"
+
+def test_accepts_bold_final_answer_with_latex_math():
+    response = (
+        "The calculation is shown above.\n\n"
+        "**Final Answer**: $1037$"
+    )
+    assert answer_matches(response, "1037")
+
+
+def test_accepts_final_answer_with_latex_math():
+    assert answer_matches(
+        "Final Answer: $1037$",
+        "1037",
+    )
+
+
+def test_accepts_bold_answer_label():
+    assert answer_matches(
+        "**Answer**: 1037",
+        "1037",
+    )
+
+
+def test_rejects_conflicting_bold_final_answer():
+    response = (
+        "The answer is 999.\n"
+        "**Final Answer**: $1037$"
+    )
+    assert not answer_matches(response, "1037")
