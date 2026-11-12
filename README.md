@@ -64,6 +64,9 @@ The evaluator operates independently of the agent, so the agent cannot determine
               |
               v
           JSON Reports
+```
+
+
 
 **Execution:** The runner loads benchmark tasks and invokes the model with the available tools.
 
