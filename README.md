@@ -39,14 +39,13 @@ The evaluator operates independently of the agent, so the agent cannot determine
 
 ## How It Works
 
-```text
        Benchmark Dataset
               |
               v
         Evaluation Runner
               |
               v
-          Agent Loop
+           Agent Loop
               |
               v
        Local LLM (Ollama)
@@ -64,8 +63,7 @@ The evaluator operates independently of the agent, so the agent cannot determine
       Metrics & Failure Analysis
               |
               v
-         JSON Reports
-```
+          JSON Reports
 
 **Execution:** The runner loads benchmark tasks and invokes the model with the available tools.
 
