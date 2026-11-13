@@ -39,6 +39,8 @@ The evaluator operates independently of the agent, so the agent cannot determine
 
 ## How It Works
 
+```text
+
        Benchmark Dataset
               |
               v
